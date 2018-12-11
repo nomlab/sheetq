@@ -1,0 +1,307 @@
+#!/usr/bin/env ruby
+
+################################################################
+# rbenv support:
+# If this file is a symlink, and bound to a specific ruby
+# version via rbenv (indicated by RBENV_VERSION),
+# I want to resolve the symlink and re-exec
+# the original executable respecting the .ruby_version
+# which should indicate the right version.
+#
+if File.symlink?(__FILE__) and ENV["RBENV_VERSION"]
+  ENV["RBENV_VERSION"] = nil
+  shims_path = File.expand_path("shims", ENV["RBENV_ROOT"])
+  ENV["PATH"] = shims_path + ":" + ENV["PATH"]
+  exec(File.readlink(__FILE__), *ARGV)
+end
+
+gemfile = File.expand_path("../../Gemfile", __FILE__)
+
+if File.exists?(gemfile + ".lock")
+  ENV["BUNDLE_GEMFILE"] = gemfile
+  require "bundler/setup"
+end
+
+require "rubygems"
+require "clian"
+require "sheetq"
+require "logger"
+
+Encoding.default_external="UTF-8"
+
+class NomnichiArticle
+  attr_reader :id, :user_id, :title, :perma_link, :content,
+  :published_on, :approved, :count, :promote_headline, :url
+
+  def self.parse_hash(hash)
+    self.new(
+      hash["id"],
+      hash["user_id"],
+      hash["title"],
+      hash["perma_link"],
+      hash["content"],
+      DateTime.parse(hash["published_on"]).to_time,
+      hash["approved"],
+      hash["count"],
+      hash["promote_headline"],
+      hash["url"])
+  end
+
+  def initialize(id, user_id, title, perma_link, content,
+                 published_on, approved, count, promote_headline, url)
+
+    @id, @user_id, @title, @perma_link, @content,
+    @published_on, @approved, @count, @promote_headline,
+    @url =id, user_id, title, perma_link, content,
+    published_on, approved, count, promote_headline, url
+  end
+
+  # Since we have no way to aquire user_name from JSON,
+  # get it from `perma_link`:
+  #   "yoshida-s-20181116-132016" => yoshida-s
+  #
+  def user_name
+    if /(.*)-\d{8}-\d{6}$/ =~ perma_link
+      return $1
+    else
+      return "unknown"
+    end
+  end
+end
+
+class NomlabMember
+  attr_reader :id, :name, :title, :account, :team, :mail, :phone,
+              :google, :twitter, :github, :organization
+
+  def initialize(id, name, title, account, team, mail, phone, google,
+                 twitter, github, organization)
+
+    @id, @name, @title, @account, @team, @mail, @phone, @google,
+    @twitter, @github, @organization = id, name, title, account, team,
+    mail, phone, google, twitter, github, organization
+  end
+
+  def active?
+    /\d{4}[MBD]/ !~ self.title
+  end
+end
+
+class SheetqCLI < Clian::Cli
+  package_name 'SHEETQ'
+  remove_command :configuration
+
+  Signal.trap(:INT){
+    Thor.new.say "Interrupted quit.", :red
+    exit(0)
+  }
+
+  ################################################################
+  # global option
+
+  class_option :profile,    :desc => "Set profiler flag", :type => :boolean
+
+  ################################################################
+  # register frequently used options
+
+  named_option :format,     :desc => "Set printing format", :enum => %w(short full metadata minimal raw mewl)
+  named_option :dry_run,    :desc => "Perform a trial run with no changes made", :type => :boolean
+  named_option :query,      :desc => "Filter messages by QUERY"
+
+  ################################################################
+  # Command: auth
+  ################################################################
+  desc "auth", "Authenticate interactively"
+
+  def auth
+    puts "Authenticating #{client.user}..."
+    begin
+      client.auth_interactively
+    rescue Sheetq::GoogleClient::AuthorizationError
+      Thor.new.say "ERROR: authorization failed.", :red
+      exit(1)
+    end
+  end
+
+  ################################################################
+  # Command: init
+  ################################################################
+  desc "init", "Create new config file"
+
+  expand_option :config
+
+  def init
+    Sheetq::Command::Init.new(@config_path)
+  end
+
+  ################################################################
+  # Command: nomnichi
+  ################################################################
+  desc "nomnichi [SHEET_ID]", "Show recently published nomnichi articles"
+
+  expand_option :config
+  option :whosnext, :type => :boolean, :desc => "Show the next candidate for writing nomnichi article"
+
+  def nomnichi(member_sheet_id = config.general.default_sheet_id)
+    current_member_account_names = fetch_nomlab_current_members(member_sheet_id).map(&:account)
+    articles = fetch_nomnichi_articles
+
+    if options[:whosnext]
+      puts whos_next(current_member_account_names, articles)
+    else
+      articles.each do |article|
+        star = if current_member_account_names.include?(article.user_name) then
+                 "*"
+               else
+                 ""
+               end
+        puts "#{article.published_on.to_date} - #{article.user_name}#{star} - #{article.title}"
+      end
+    end
+  end
+
+  ################################################################
+  # Command: show
+  ################################################################
+  desc "show SHEET_ID", "Show sheet"
+
+  expand_option :config
+
+  def show(sheet_id)
+    range = 'members!A:K'
+    response = client.get_spreadsheet_values(sheet_id, range)
+    response.values.each do |row|
+      puts "#{row[0]}, #{row[1]}, #{row[2]}, #{row[3]}, #{row[4]}, #{row[5]}, #{row[6]}, #{row[7]}, #{row[8]}, #{row[9]}, #{row[10]}"
+    end
+  end
+
+
+  ################################################################
+  # private
+
+  private
+
+  def whos_next(current_member_account_names, articles)
+    epoch = Time.new(1970, 1, 1)
+    old_to_new_articles =  articles.sort {|a, b| a.published_on <=> b.published_on}
+    latest_published_time = Hash.new
+
+    current_member_account_names.each do |user_name|
+      latest_published_time[user_name] = epoch
+    end
+
+    old_to_new_articles.each do |article|
+      next unless current_member_account_names.include?(article.user_name)
+      latest_published_time[article.user_name] = article.published_on
+    end
+
+    return latest_published_time.sort{|a, b| a[1] <=> b[1]}.first[0]
+  end
+
+  def fetch_nomnichi_articles(max_page = 10)
+    require "json"
+    require "net/http"
+    base_url = "http://www.swlab.cs.okayama-u.ac.jp/lab/nom/articles.json?page="
+    page, articles = 1, []
+
+    loop do
+      return articles if page > max_page
+      res = Net::HTTP.get_response(URI.parse(base_url + page.to_s))
+      return articles if res.code != "200" # no more articles
+      articles += JSON.parse(res.body).map {|hash| NomnichiArticle.parse_hash(hash)}
+      return articles if Time.now - articles.last.published_on > (365*24*60*60) # limit to 1-year
+      page += 1
+    end
+  end
+
+  def fetch_nomlab_current_members(sheet_id)
+    range, current_members = "members!A:K", []
+
+    response = client.get_spreadsheet_values(sheet_id, range)
+
+    response.values.each_with_index do |row, index|
+      next if index == 0 # skip header
+
+      # row = id, name, title, account, team, mail, phone, google,
+      #       twitter, github, organization
+      # if organization column is empty, fill it with nil
+      row[10] = nil if row.length < 11
+
+      member = NomlabMember.new(*row)
+      current_members << member if member.active?
+    end
+
+    return current_members
+  end
+
+
+  def error_and_exit(message)
+    STDERR.puts message
+    exit 1
+  end
+
+  def parse_label_names(label_names)
+    (label_names&.split(/ *, */) || []).map do |name|
+      unless label = client.label_by_name(name)
+        error_and_exit("No label named #{name}")
+      end
+      label
+    end
+  end
+
+  attr_reader :builder, :config, :user, :context, :client
+
+  def setup_global_options(command, *args)
+    exit_on_error do
+      if options[:profile]
+        require 'profiler'
+        Profiler__.start_profile
+      end
+
+      if options[:debug]
+        require "pp"
+        $SHEETQ_DEBUG = true
+        $SHEETQ_DEBUG_FOR_DEVELOPER = true if ENV["SHEETQ_DEBUG_FOR_DEVELOPER"]
+      end
+
+      unless @logger
+        @logger = ::Logger.new($stderr)
+        @logger.formatter = proc {|severity, datetime, progname, msg| "#{datetime} #{msg}\n"}
+        Sheetq::Command.logger = @logger
+      end
+
+      @config_path = options[:config] || DEFAULT_CONFIG_PATH
+
+      return true if ["init", "help"].member?(command.name)
+
+      @config ||= Sheetq::Config.create_from_file(@config_path)
+      @user  = options[:user] || config.general.default_user
+      @client ||= Sheetq::GoogleClient.new(config.general.client_id,
+                                         config.general.client_secret,
+                                         File.expand_path("token_store.yml", File.dirname(@config_path)),
+                                         @user, @logger)
+
+      Sheetq::Command.client ||= @client
+
+      unless ["auth"].member?(command.name)
+        begin
+          @client.auth unless @client_already_authorized
+          @client_already_authorized = true
+        rescue Sheetq::GmailClient::AuthorizationError
+          Thor.new.say "ERROR: access token expired? try: sheetq auth --user=#{@user}", :red
+          exit(1)
+        end
+      end
+    end
+  end
+
+  def custom_completion_for_banner(banner)
+    case banner
+    when /^USER/
+      "(#{config.general.default_user})"
+    else
+      nil
+    end
+  end
+end
+
+SheetqCLI.start(ARGV)
