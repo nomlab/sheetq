@@ -162,15 +162,22 @@ class SheetqCLI < Clian::Cli
   ################################################################
   # Command: show
   ################################################################
-  desc "show SHEET_ID", "Show sheet"
+  desc "show SHEET_ID SHEET_NAME", "Show sheet"
 
   expand_option :config
 
-  def show(sheet_id)
-    range = 'members!A:K'
+  def show(sheet_id, sheet_name)
+    range = "#{sheet_name}"
     response = client.get_spreadsheet_values(sheet_id, range)
+
+    max_length = response.values.map{|row| row.length}.max
+    last_index = [0, max_length - 1].max
+
     response.values.each do |row|
-      puts "#{row[0]}, #{row[1]}, #{row[2]}, #{row[3]}, #{row[4]}, #{row[5]}, #{row[6]}, #{row[7]}, #{row[8]}, #{row[9]}, #{row[10]}"
+      if row.length < max_length
+        row[last_index] = nil
+      end
+      puts row.join(",")
     end
   end
 
