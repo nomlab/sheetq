@@ -1,0 +1,89 @@
+#+TITLE: Sheetq -- Google Spreadsheet CLI client.
+#+AUTHOR: Yoshinari Nomura
+#+EMAIL:
+#+DATE:
+#+OPTIONS: H:3 num:2 toc:nil
+#+OPTIONS: ^:nil @:t \n:nil ::t |:t f:t TeX:t
+#+OPTIONS: skip:nil
+#+OPTIONS: author:t
+#+OPTIONS: email:nil
+#+OPTIONS: creator:nil
+#+OPTIONS: timestamp:nil
+#+OPTIONS: timestamps:nil
+#+OPTIONS: d:nil
+#+OPTIONS: tags:t
+#+TEXT:
+#+DESCRIPTION:
+#+KEYWORDS:
+#+LANGUAGE: ja
+#+STARTUP: odd
+#+LATEX_CLASS: jsarticle
+#+LATEX_CLASS_OPTIONS: [a4j,dvipdfmx]
+# #+LATEX_HEADER: \usepackage{plain-article}
+# #+LATEX_HEADER: \renewcommand\maketitle{}
+# #+LATEX_HEADER: \pagestyle{empty}
+# #+LaTeX: \thispagestyle{empty}
+
+* Installation
+  Sheetq requires Ruby 2.3 or newer.
+
+** Install using gem (Currently not work)
+   #+BEGIN_SRC sh
+     $ gem install sheetq
+   #+END_SRC
+
+** Install in sandbox
+   #+BEGIN_SRC sh
+     $ gem install bundler
+     $ mkdir /path/to/install/sheetq
+     $ cd /path/to/install/
+     $ bundle init
+     $ echo 'gem "sheetq"' >> Gemfile
+     $ bundle install --path=vendor/bundle --binstubs=exe
+     $ export PATH=/path/to/install/sheetq/exe:$PATH
+   #+END_SRC
+
+* Setup
+  1) Get OAuth CLIENT_ID/CLIENT_SECRET
+
+     Visit https://console.developers.google.com and follow the instruction.
+     Googling 'Creating a Google API Console project and client ID' would help.
+
+  2) Create app config file interactively
+     #+BEGIN_SRC sh
+       $ sheetq init
+
+       Creating ~/.config/sheetq/config.yml ...
+       Get your CLIENT_ID/CLIENT_SECRET at https://console.developers.google.com
+       Googling 'Creating a Google API Console project and client ID' would help.
+       CLIENT_ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
+       CLIENT_SECRET: xxxxxxxxxxxxxxxxxxxxxxxx
+
+       Making config directory ~/.config/sheetq ...
+             create  /Users/nom/.config/sheetq
+       Making cache directory ~/.cache/sheetq ...
+              exist  Ignore /Users/nom/.cache/sheetq
+       Copying file(s) into ~/.config/sheetq/config.yml ...
+              exist  Ignore ~/.config/sheetq
+                 ok  copy /Users/nom/.config/sheetq/config.yml
+       done.
+     #+END_SRC
+
+  3) Grant OAuth access to Google  (browser will be invoked)
+     #+BEGIN_SRC sh
+       $ sheetq auth
+
+       Authenticating xxxxxxxxxxxxxxx@gmail.com...
+       Enter the resulting code: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+     #+END_SRC
+     If you want to add another account, try ~sheetq auth --user=another_account~.
+
+  4) Check your sheet
+     #+BEGIN_SRC sh
+       $ sheetq show '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms' 'Class Data!A2:E'
+
+       Alexandra,Female,4. Senior,CA,English
+       Andrew,Male,1. Freshman,SD,Math
+       Anna,Female,1. Freshman,NC,English
+       :
+     #+END_SRC
