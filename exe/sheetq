@@ -98,9 +98,11 @@ class SheetqCLI < Clian::Cli
 
   def whois(keyword)
     member_sheet_id = options[:sheet] || config.general.default_sheet_id
-    current_members = fetch_nomlab_current_members(member_sheet_id)
 
-    current_members.each do |member|
+    server = Sheetq::Service::Sheet.new(client, member_sheet_id, "members", Sheetq::Resource::Member)
+    members = server.fetch
+
+    members.each do |member|
       if member.match(keyword)
         puts "-------------------------------------"
         puts member.to_s
