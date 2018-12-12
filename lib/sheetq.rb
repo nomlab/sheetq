@@ -9,5 +9,6 @@ module Sheetq
   autoload :Command,              "#{dir}/command.rb"
   autoload :Config,               "#{dir}/config.rb"
   autoload :GoogleClient,         "#{dir}/google_client.rb"
+  autoload :Resource,             "#{dir}/resource.rb"
   autoload :VERSION,              "#{dir}/version.rb"
 end
