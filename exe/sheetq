@@ -85,21 +85,7 @@ class SheetqCLI < Clian::Cli
   option :whosnext, :type => :boolean, :desc => "Show the next candidate for writing nomnichi article"
 
   def nomnichi(member_sheet_id = config.general.default_sheet_id)
-    current_member_account_names = fetch_nomlab_current_members(member_sheet_id).map(&:account)
-    articles = fetch_nomnichi_articles
-
-    if options[:whosnext]
-      puts whos_next(current_member_account_names, articles)
-    else
-      articles.each do |article|
-        star = if current_member_account_names.include?(article.user_name) then
-                 "*"
-               else
-                 ""
-               end
-        puts "#{article.published_on.to_date} - #{article.user_name}#{star} - #{article.title}"
-      end
-    end
+    Sheetq::Command::Nomnichi.new(member_sheet_id, options[:whosnext])
   end
 
   ################################################################
@@ -150,60 +136,6 @@ class SheetqCLI < Clian::Cli
   # private
 
   private
-
-  def whos_next(current_member_account_names, articles)
-    epoch = Time.new(1970, 1, 1)
-    old_to_new_articles =  articles.sort {|a, b| a.published_on <=> b.published_on}
-    latest_published_time = Hash.new
-
-    current_member_account_names.each do |user_name|
-      latest_published_time[user_name] = epoch
-    end
-
-    old_to_new_articles.each do |article|
-      next unless current_member_account_names.include?(article.user_name)
-      latest_published_time[article.user_name] = article.published_on
-    end
-
-    return latest_published_time.sort{|a, b| a[1] <=> b[1]}.first[0]
-  end
-
-  def fetch_nomnichi_articles(max_page = 10)
-    require "json"
-    require "net/http"
-    base_url = "http://www.swlab.cs.okayama-u.ac.jp/lab/nom/articles.json?page="
-    page, articles = 1, []
-
-    loop do
-      return articles if page > max_page
-      res = Net::HTTP.get_response(URI.parse(base_url + page.to_s))
-      return articles if res.code != "200" # no more articles
-      articles += JSON.parse(res.body).map {|hash| Sheetq::Resource::NomnichiArticle.parse_hash(hash)}
-      return articles if Time.now - articles.last.published_on > (365*24*60*60) # limit to 1-year
-      page += 1
-    end
-  end
-
-  def fetch_nomlab_current_members(sheet_id)
-    range, current_members = "members!A:K", []
-
-    response = client.get_spreadsheet_values(sheet_id, range)
-
-    response.values.each_with_index do |row, index|
-      next if index == 0 # skip header
-
-      # row = id, name, title, account, team, mail, phone, google,
-      #       twitter, github, organization
-      # if organization column is empty, fill it with nil
-      row[10] = nil if row.length < 11
-
-      member = Sheetq::Resource::Member.new(*row)
-      current_members << member if member.active?
-    end
-
-    return current_members
-  end
-
 
   def error_and_exit(message)
     STDERR.puts message
