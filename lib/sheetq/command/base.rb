@@ -1,6 +1,7 @@
 module Sheetq
   module Command
     class Base
+      attr_reader :message
 
       private
 

@@ -7,13 +7,16 @@ module Sheetq
         current_member_account_names = members.map(&:account)
         articles = Sheetq::Service::Nomnichi.new.fetch
 
+        @message = []
+
         if whosnext
-          puts whos_next(current_member_account_names, articles)
+          @message << whos_next(current_member_account_names, articles)
         else
           articles.each do |article|
-            puts "#{article.published_on.to_date} - #{article.user_name} - #{article.title}"
+            @message << "#{article.published_on.to_date} - #{article.user_name} - #{article.title}"
           end
         end
+        puts @message.join("\n")
       end
 
       private
