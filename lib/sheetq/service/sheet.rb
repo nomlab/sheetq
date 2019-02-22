@@ -1,10 +1,10 @@
 module Sheetq
   module Service
     class Sheet < Base
-      attr_reader :client, :spreadsheet_id, :sheet_name
+      attr_reader :spreadsheet, :sheet_name
 
-      def initialize(client, spreadsheet_id, sheet_name, resource_class)
-        @client, @spreadsheet_id, @sheet_name, @resource_class = client, spreadsheet_id, sheet_name, resource_class
+      def initialize(spreadsheet, sheet_name, resource_class = nil)
+        @spreadsheet, @sheet_name, @resource_class = spreadsheet, sheet_name, resource_class
         @column_names = []
       end
 
@@ -19,7 +19,7 @@ module Sheetq
 
         resources = []
 
-        response = client.get_spreadsheet_values(spreadsheet_id, range)
+        response = spreadsheet.get_spreadsheet_values(range)
 
         response.values.each_with_index do |row, index|
           if index == 0
@@ -28,7 +28,11 @@ module Sheetq
             next
           end
           row[max_cols - 1] = nil if row.length < max_cols
-          resources << @resource_class.new(*row)
+          if @resource_class
+            resources << @resource_class.new(*row)
+          else
+            resources << row
+          end
         end
         return resources
       end

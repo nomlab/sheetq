@@ -2,7 +2,8 @@ module Sheetq
   module Command
     class Nomnichi < Base
       def initialize(member_sheet_id, whosnext = false)
-        server = Sheetq::Service::Sheet.new(client, member_sheet_id, "members", Sheetq::Resource::Member)
+        spreadsheet = Sheetq::Service::Spreadsheet.new(client, member_sheet_id)
+        server = spreadsheet.sheet("members", Sheetq::Resource::Member)
         members = server.fetch.select {|m| m.active? }
         current_member_account_names = members.map(&:account)
         articles = Sheetq::Service::Nomnichi.new.fetch
