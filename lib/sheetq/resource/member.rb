@@ -1,14 +1,14 @@
 module Sheetq
   module Resource
     class Member
-      attr_reader :id, :name, :title, :account, :team, :mail, :phone,
+      attr_reader :id, :name, :joined, :title, :account, :team, :mail, :phone,
                   :google, :twitter, :github, :organization
 
-      def initialize(id, name, title, account, team, mail, phone, google,
+      def initialize(id, name, joined, title, account, team, mail, phone, google,
                      twitter, github, organization)
 
-        @id, @name, @title, @account, @team, @mail, @phone, @google,
-        @twitter, @github, @organization = id, name, title, account, team,
+        @id, @name, @joined, @title, @account, @team, @mail, @phone, @google,
+        @twitter, @github, @organization = id, name, joined, title, account, team,
         mail, phone, google, twitter, github, organization
       end
 
@@ -28,6 +28,7 @@ module Sheetq
       def to_s
         "ID: #{@id}\n" +
           "Name: #{@name}\n" +
+          "Joined: #{@joined}\n" +
           "Title: #{@title}\n" +
           "Account: #{@account}\n" +
           "Team: #{@team}\n" +
