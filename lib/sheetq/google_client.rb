@@ -10,11 +10,13 @@ Google::Apis::RequestOptions.default.retries = 5
 module Sheetq
   class GoogleClient
     class AuthorizationError < StandardError ; end
+    attr_reader :user
 
     extend Forwardable
 
     def_delegators :@client,
-    :get_spreadsheet_values
+    :get_spreadsheet_values,
+    :append_spreadsheet_value
 
     def initialize(client_id, client_secret, token_store_path, user, logger = nil)
       @client_id = client_id
@@ -67,7 +69,7 @@ module Sheetq
       @authorizer ||= Clian::Authorizer.new(
         @client_id,
         @client_secret,
-        Google::Apis::SheetsV4::AUTH_SPREADSHEETS_READONLY,
+        Google::Apis::SheetsV4::AUTH_SPREADSHEETS,
         @token_store_path
       )
     end

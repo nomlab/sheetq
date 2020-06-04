@@ -8,6 +8,13 @@ module Sheetq
         @column_names = []
       end
 
+      def append_row(resource)
+        unless resource.is_a?(@resource_class)
+          fail "Invalid resource #{resource.class} to append sheet #{sheet_name}"
+        end
+        spreadsheet.append_row(sheet_name, resource)
+      end
+
       def fetch(range = nil)
         range = if range
                   sheet_name + "!" + range
