@@ -103,7 +103,7 @@ class SheetqCLI < Clian::Cli
     resource_class = Array # resource_class must implement to_a method
 
     spreadsheet = Sheetq::Service::Spreadsheet.new(client, sheet_id)
-    sheet = Sheetq::Service::Sheet.new(spreadsheet, "attendance2", Array)
+    sheet = Sheetq::Service::Sheet.new(spreadsheet, "attendance", Array)
     begin
       sheet.append_row([Time.now.strftime("%Y-%m-%d %H:%M:%S"), inout, ENV["USER"], comment])
     rescue => e
