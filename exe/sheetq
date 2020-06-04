@@ -99,8 +99,9 @@ class SheetqCLI < Clian::Cli
   def whois(keyword)
     member_sheet_id = options[:sheet] || config.general.default_sheet_id
 
-    server = Sheetq::Service::Sheet.new(client, member_sheet_id, "members", Sheetq::Resource::Member)
-    members = server.fetch
+    spreadsheet = Sheetq::Service::Spreadsheet.new(client, member_sheet_id)
+    sheet = Sheetq::Service::Sheet.new(spreadsheet, "members", Sheetq::Resource::Member)
+    members = sheet.fetch
 
     members.each do |member|
       if member.match(keyword)
