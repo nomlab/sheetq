@@ -23,6 +23,7 @@ module Sheetq
         config[:client_secret] = @shell.ask "CLIENT_SECRET:"
         config[:default_user] = @shell.ask "Gmail address:"
         config[:cache_directory] = "~/.cache/sheetq"
+        config[:default_sheet_id] = @shell.ask "DEFAULT_SHEET_ID:"
 
         # mkdir config_dir
         unless Dir.exist?(File.expand_path(config_dir))
