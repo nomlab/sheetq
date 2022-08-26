@@ -95,17 +95,19 @@ class SheetqCLI < Clian::Cli
 
   expand_option :config
   option :sheet, :desc => "Set Google spreadsheet ID"
+  option :user_name, :desc => "Set attendee name"
   option :comment, :desc => "Set comment column"
 
   def attendance(inout)
     sheet_id = options[:sheet] || config.general.default_sheet_id
+    user_name = options[:user_name] || ENV["USER"]
     comment = options[:comment] || ""
     resource_class = Array # resource_class must implement to_a method
 
     spreadsheet = Sheetq::Service::Spreadsheet.new(client, sheet_id)
     sheet = Sheetq::Service::Sheet.new(spreadsheet, "attendance", Array)
     begin
-      sheet.append_row([Time.now.strftime("%Y-%m-%d %H:%M:%S"), inout, ENV["USER"], comment])
+      sheet.append_row([Time.now.strftime("%Y-%m-%d %H:%M:%S"), inout, user_name, comment])
     rescue => e
       puts "Error: #{e.message}"
     end
