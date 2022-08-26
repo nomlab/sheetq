@@ -58,7 +58,8 @@
        Googling 'Creating a Google API Console project and client ID' would help.
        CLIENT_ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
        CLIENT_SECRET: xxxxxxxxxxxxxxxxxxxxxxxx
-
+       Gmail address: xxxxxxxxxxx@xxxxx.xxx
+       DEFAULT_SHEET_ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
        Making config directory ~/.config/sheetq ...
              create  /Users/nom/.config/sheetq
        Making cache directory ~/.cache/sheetq ...
@@ -80,7 +81,7 @@
 
   4) Check your sheet
      #+BEGIN_SRC sh
-       $ sheetq show '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms' 'Class Data!A2:E'
+       $ sheetq show 'Class Data!A2:E'
 
        Alexandra,Female,4. Senior,CA,English
        Andrew,Male,1. Freshman,SD,Math
