@@ -46,7 +46,6 @@ class SheetqCLI < Clian::Cli
   ################################################################
   # register frequently used options
 
-  named_option :format,     :desc => "Set printing format", :enum => %w(short full metadata minimal raw mewl)
   named_option :dry_run,    :desc => "Perform a trial run with no changes made", :type => :boolean
   named_option :query,      :desc => "Filter messages by QUERY"
 
@@ -144,21 +143,30 @@ class SheetqCLI < Clian::Cli
 
   expand_option :config
   option :sheet, :desc => "Set Google spreadsheet ID"
+  option :format, :desc => "Set printing format", :enum => %w(csv json txt)
 
   def show(sheet_name)
     sheet_id = options[:sheet] || config.general.default_sheet_id
     range = "#{sheet_name}"
     response = client.get_spreadsheet_values(sheet_id, range)
 
-    max_length = response.values.map{|row| row.length}.max
-    last_index = [0, max_length - 1].max
+    # If header is in the form of: "氏名 (name)"
+    # take "name" as header instead of the whole string.
+    headers = response.values.first.map {|str|
+      if str =~ /\(([^)]+)\)$/ then $1 else str end
+    }
+    rows = response.values[1..-1]
 
-    response.values.each do |row|
-      if row.length < max_length
-        row[last_index] = nil
-      end
-      puts row.join(",")
-    end
+    printable = case options[:format]
+                when 'csv'
+                  array_to_csv(headers, rows)
+                when 'json'
+                  array_to_json(headers, rows)
+                else
+                  array_to_text(headers, rows)
+                end
+
+    puts printable
   end
 
 
@@ -166,6 +174,24 @@ class SheetqCLI < Clian::Cli
   # private
 
   private
+
+  def array_to_csv(headers, rows)
+    require 'csv'
+    return CSV.generate(headers: headers, write_headers: true) do |csv|
+      rows.each do |row|
+        csv.add_row row
+      end
+    end
+  end
+
+  def array_to_json(headers, rows)
+    rows.map {|row| Hash[headers.zip(row)]}.to_json
+  end
+
+  def array_to_text(headers, rows)
+    headers.join(' ') + "\n" +
+      rows.map {|row| row.join(" ")}.join("\n")
+  end
 
   def error_and_exit(message)
     STDERR.puts message
