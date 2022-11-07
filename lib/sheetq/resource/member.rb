@@ -2,14 +2,14 @@ module Sheetq
   module Resource
     class Member
       attr_reader :id, :name, :joined, :title, :account, :team, :mail, :phone,
-                  :google, :twitter, :github, :organization
+                  :google, :twitter, :github, :btmac, :organization
 
       def initialize(id, name, joined, title, account, team, mail, phone, google,
-                     twitter, github, organization)
+                     twitter, github, btmac, organization)
 
         @id, @name, @joined, @title, @account, @team, @mail, @phone, @google,
-        @twitter, @github, @organization = id, name, joined, title, account, team,
-        mail, phone, google, twitter, github, organization
+        @twitter, @github, @btmac, @organization = id, name, joined, title, account, team,
+        mail, phone, google, twitter, github, btmac, organization
       end
 
       def active?
@@ -37,6 +37,7 @@ module Sheetq
           "Google: #{@google}\n" +
           "Twitter: #{@twitter}\n" +
           "GitHub: #{@github}\n" +
+          "BtMAC: #{@btmac}\n" +
           "Organization: #{@organization}"
       end
     end # class Member
