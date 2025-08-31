@@ -15,6 +15,25 @@ module Sheetq
         spreadsheet.append_row(sheet_name, resource)
       end
 
+      def update_row(resource, row_num)
+        unless resource.is_a?(@resource_class)
+          fail "Invalid resource #{resource.class} to update sheet #{sheet_name}"
+        end
+        spreadsheet.update_row(sheet_name, resource, row_num)
+      end
+
+      def update_row_including_keyword(keyword, resource)
+        unless resource.is_a?(@resource_class)
+          fail "Invalid resource #{resource.class} to update sheet #{sheet_name}"
+        end
+        row_num = spreadsheet.get_row_num(sheet_name, keyword)
+        spreadsheet.update_row(sheet_name, resource, row_num)
+      end
+
+      def delete_row(row_num)
+        spreadsheet.delete_row(sheet_name, row_num)
+      end
+
       def fetch(range = nil)
         range = if range
                   sheet_name + "!" + range

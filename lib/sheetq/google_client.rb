@@ -13,8 +13,11 @@ module Sheetq
     extend Forwardable
 
     def_delegators :@client,
+    :get_spreadsheet,
     :get_spreadsheet_values,
-    :append_spreadsheet_value
+    :append_spreadsheet_value,
+    :update_spreadsheet_value,
+    :batch_update_spreadsheet
 
     def initialize(client_id, client_secret, token_store_path, user, logger = nil)
       @client_id = client_id
